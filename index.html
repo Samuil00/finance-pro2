@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoinKeeper — финансы под контролем</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Chart.js для графиков -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Верхняя панель с балансом -->
+        <div class="header">
+            <div class="balance-container">
+                <span class="balance-label">Баланс</span>
+                <span class="balance-amount" id="balance">0 ₽</span>
+            </div>
+            <div class="period-selector">
+                <button class="period-btn active" data-period="day">День</button>
+                <button class="period-btn" data-period="week">Неделя</button>
+                <button class="period-btn" data-period="month">Месяц</button>
+                <button class="period-btn" data-period="year">Год</button>
+            </div>
+        </div>
+
+        <!-- Основная навигация (табы) -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="main">🏠 Главная</button>
+            <button class="tab-btn" data-tab="debts">📋 Долги</button>
+            <button class="tab-btn" data-tab="invest">📈 Инвестиции</button>
+            <button class="tab-btn" data-tab="stats">📊 Статистика</button>
+            <button class="tab-btn" data-tab="budget">🎯 Бюджет</button>
+        </div>
+
+        <!-- ВКЛАДКА: ГЛАВНАЯ (монетница) -->
+        <div id="main-tab" class="tab-content active">
+            <!-- Быстрое добавление дохода/расхода -->
+            <div class="quick-add">
+                <input type="number" id="quickAmount" placeholder="Сумма" min="0">
+                <div class="quick-buttons">
+                    <button class="btn-income" onclick="app.addQuickIncome()">💰 Доход</button>
+                    <button class="btn-expense" onclick="app.showExpenseCategories()">💸 Расход</button>
+                </div>
+            </div>
+
+            <!-- Категории расходов (монетница) -->
+            <div class="categories-section">
+                <h2>📦 Категории расходов</h2>
+                <div class="categories-grid" id="expenseCategories">
+                    <!-- Динамически заполняется из JS -->
+                </div>
+            </div>
+
+            <!-- Доходы по категориям -->
+            <div class="categories-section">
+                <h2>💰 Категории доходов</h2>
+                <div class="categories-grid" id="incomeCategories">
+                    <!-- Динамически заполняется из JS -->
+                </div>
+            </div>
+
+            <!-- Последние операции -->
+            <div class="recent-transactions">
+                <h2>📝 Последние операции</h2>
+                <div id="transactionsList" class="transactions-list">
+                    <!-- Динамически -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА: ДОЛГИ -->
+        <div id="debts-tab" class="tab-content">
+            <div class="card">
+                <h2>➕ Новый долг</h2>
+                <div class="input-group">
+                    <input type="text" id="debtName" placeholder="Кому/чему">
+                    <input type="number" id="debtAmount" placeholder="Сумма долга">
+                    <input type="number" id="debtInterest" placeholder="Процент % годовых" step="0.1">
+                    <input type="date" id="debtDeadline">
+                    <select id="debtType">
+                        <option value="owe">Я должен</option>
+                        <option value="owed">Мне должны</option>
+                    </select>
+                    <select id="debtPriority">
+                        <option value="high">🔴 Высокий приоритет</option>
+                        <option value="medium" selected>🟡 Средний</option>
+                        <option value="low">🟢 Низкий</option>
+                    </select>
+                    <button class="btn-primary" onclick="app.addDebt()">Добавить долг</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📋 Активные долги</h2>
+                <div id="debtsList" class="debts-list"></div>
+            </div>
+
+            <div class="card">
+                <h2>📊 Кредитный калькулятор</h2>
+                <div class="credit-calculator">
+                    <input type="number" id="creditAmount" placeholder="Сумма кредита">
+                    <input type="number" id="creditRate" placeholder="Ставка % годовых" step="0.1">
+                    <input type="number" id="creditTerm" placeholder="Срок (месяцев)">
+                    <button class="btn-secondary" onclick="app.calculateCredit()">Рассчитать платеж</button>
+                    <div id="creditResult" class="credit-result"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА: ИНВЕСТИЦИИ -->
+        <div id="invest-tab" class="tab-content">
+            <div class="card">
+                <h2>➕ Добавить инвестицию</h2>
+                <div class="input-group">
+                    <input type="text" id="investName" placeholder="Название актива">
+                    <input type="number" id="investAmount" placeholder="Сумма инвестиций">
+                    <input type="number" id="investPrice" placeholder="Цена за единицу">
+                    <input type="number" id="investCurrentPrice" placeholder="Текущая цена">
+                    <select id="investType">
+                        <option value="stock">Акции</option>
+                        <option value="bond">Облигации</option>
+                        <option value="etf">ETF</option>
+                        <option value="crypto">Криптовалюта</option>
+                        <option value="realty">Недвижимость</option>
+                    </select>
+                    <button class="btn-primary" onclick="app.addInvestment()">Добавить</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📈 Инвестиционный портфель</h2>
+                <div id="portfolioChart">
+                    <canvas id="portfolioPieChart"></canvas>
+                </div>
+                <div id="investmentsList" class="investments-list"></div>
+            </div>
+
+            <div class="card">
+                <h2>📊 Доходность портфеля</h2>
+                <div id="portfolioStats" class="portfolio-stats"></div>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА: СТАТИСТИКА -->
+        <div id="stats-tab" class="tab-content">
+            <div class="card">
+                <h2>📊 Доходы/Расходы</h2>
+                <canvas id="incomeExpenseChart"></canvas>
+            </div>
+
+            <div class="card">
+                <h2>🥧 Структура расходов</h2>
+                <canvas id="expensesPieChart"></canvas>
+            </div>
+
+            <div class="stats-grid" id="statsCards">
+                <!-- Динамические карточки статистики -->
+            </div>
+
+            <div class="card">
+                <h2>📅 Динамика за период</h2>
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА: БЮДЖЕТ -->
+        <div id="budget-tab" class="tab-content">
+            <div class="card">
+                <h2>🎯 Месячный бюджет</h2>
+                <div class="budget-progress">
+                    <div class="budget-item">
+                        <span>Продукты</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 45%"></div>
+                        </div>
+                        <span class="budget-numbers">4 500 / 10 000 ₽</span>
+                    </div>
+                    <div class="budget-item">
+                        <span>Транспорт</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 60%"></div>
+                        </div>
+                        <span class="budget-numbers">3 000 / 5 000 ₽</span>
+                    </div>
+                    <div class="budget-item">
+                        <span>Развлечения</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 80%"></div>
+                        </div>
+                        <span class="budget-numbers">4 000 / 5 000 ₽</span>
+                    </div>
+                </div>
+                <button class="btn-secondary" onclick="app.showBudgetSetup()">Настроить бюджет</button>
+            </div>
+
+            <div class="card">
+                <h2>⏰ Регулярные платежи</h2>
+                <div id="recurringList" class="recurring-list">
+                    <!-- Динамически -->
+                </div>
+                <button class="btn-primary" onclick="app.addRecurringPayment()">➕ Добавить напоминание</button>
+            </div>
+
+            <div class="card">
+                <h2>💡 Финансовые цели</h2>
+                <div id="goalsList" class="goals-list">
+                    <!-- Динамически -->
+                </div>
+                <button class="btn-primary" onclick="app.addGoal()">🎯 Новая цель</button>
+            </div>
+        </div>
+
+        <!-- Модальное окно для выбора категории расхода -->
+        <div id="categoryModal" class="modal">
+            <div class="modal-content">
+                <h3>Выберите категорию</h3>
+                <div class="modal-categories" id="modalCategories"></div>
+                <button class="btn-secondary" onclick="app.closeModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
